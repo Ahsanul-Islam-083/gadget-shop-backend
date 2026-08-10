@@ -6,7 +6,7 @@
   "type": "commonjs",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "build": "tsc",
+    "build": "tsc && tsc-alias",
     "start": "node dist/server.js",
     "migrate": "prisma migrate dev",
     "seed": "tsx prisma/seed.ts"
@@ -29,6 +29,7 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^26.2.0",
     "prisma": "^7.9.1",
+    "tsc-alias": "^1.9.1",
     "tsx": "^4.23.11",
     "typescript": "^7.0.2"
   }
