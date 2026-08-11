@@ -39,7 +39,7 @@ model User {
   id        String   @id @default(uuid())
   name      String
   email     String   @unique
-  password  String
+  password  String?
   role      UserRole @default(CUSTOMER)
   isDeleted Boolean  @default(false)
   createdAt DateTime @default(now())

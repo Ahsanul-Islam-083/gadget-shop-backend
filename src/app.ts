@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import cookieParser from "cookie-parser";
 
 import routes from "./routes";
 import { errorHandler } from "@/lib/error-handler";
@@ -10,6 +11,7 @@ const app = express();
 app.use(cors({ origin: process.env.CORS_ORIGIN || "*" }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
 // Home Route
 app.get("/", (_req, res) => {

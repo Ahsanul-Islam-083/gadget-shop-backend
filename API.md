@@ -45,6 +45,14 @@ Create a customer account (role always `CUSTOMER`).
 **Response 200:** current user incl. `isDeleted`
 **Errors:** 401
 
+### GET /auth/google — public, redirect flow (not JSON)
+Redirects the browser to Google's OAuth consent screen. Sets an `oauth_state` cookie (CSRF protection).
+**Errors:** 500 if `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` / `GOOGLE_CALLBACK_URL` are missing.
+
+### GET /auth/google/callback — public, redirect flow (not JSON)
+Google redirects here after consent. Finds the `User` by email or creates one (role always `CUSTOMER`, `password` null), issues the same JWT as register/login, then redirects to `<FRONTEND_URL>/auth/callback?token=<jwt>`. On failure redirects to `<FRONTEND_URL>/auth/callback?error=<message>` (also used when the user denies consent).
+**Notes:** users created via Google have `password` null and cannot use `POST /auth/login`; the email/password login of an existing account is unaffected.
+
 ---
 
 ## Users (`/users`) — ADMIN only (all routes)
