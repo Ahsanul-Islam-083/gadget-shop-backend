@@ -6,6 +6,7 @@ import { sendSuccess, sendPaginated } from "@/lib/response";
 import {
   listProducts,
   getProductById,
+  listProductReviews,
   createProduct,
   updateProduct,
   deleteProduct,
@@ -74,6 +75,29 @@ router.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
     const product = await getProductById(id);
 
     sendSuccess(res, product, "Product fetched successfully");
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * GET /products/:id/reviews
+ *
+ * List a product's reviews (public, non-deleted only), paginated.
+ * Query: page (default 1), pageSize (default 10, max 100).
+ */
+router.get("/:id/reviews", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const id = req.params.id as string;
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const pageSize = Math.min(
+      100,
+      parseInt(req.query.pageSize as string) || 10
+    );
+
+    const result = await listProductReviews(id, page, pageSize);
+
+    sendPaginated(res, result.data, result.pagination, "Reviews fetched successfully");
   } catch (error) {
     next(error);
   }

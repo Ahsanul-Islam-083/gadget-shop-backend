@@ -31,19 +31,33 @@ Create a customer account (role always `CUSTOMER`).
 ```json
 { "name": "John Doe", "email": "john@example.com", "password": "secret123" }
 ```
-**Response 201:** `{ "user": { id, name, email, role, createdAt, updatedAt }, "token": "<jwt>" }`
+**Response 201:** `{ "user": { id, name, email, role, image, createdAt, updatedAt }, "token": "<jwt>" }`
 **Errors:** 400 missing fields / email already registered
 
 ### POST /auth/login
 ```json
 { "email": "john@example.com", "password": "secret123" }
 ```
-**Response 200:** `{ "user": { id, name, email, role, createdAt, updatedAt }, "token": "<jwt>" }`
+**Response 200:** `{ "user": { id, name, email, role, image, createdAt, updatedAt }, "token": "<jwt>" }`
 **Errors:** 401 invalid email/password or deleted account
 
 ### GET /auth/me — Bearer
-**Response 200:** current user incl. `isDeleted`
+**Response 200:** current user incl. `image`, `isDeleted`
 **Errors:** 401
+
+### PATCH /auth/me — Bearer
+Self-edit profile for the currently authenticated user. Lets users update their own name, avatar image URL, or password. Cannot change role or email. Changing password requires confirming current password.
+```json
+{
+  "name": "John Updated",
+  "image": "https://i.ibb.co/avatar.jpg",
+  "password": "newSecret123",
+  "currentPassword": "secret123"
+}
+```
+All fields are optional. `currentPassword` is required if `password` is provided. `image` can be set to `null` to remove avatar.
+**Response 200:** `{ "user": { id, name, email, role, image, createdAt, updatedAt, isDeleted } }`
+**Errors:** 400 validation error / incorrect current password / missing current password when changing password · 401 unauthorized
 
 ### GET /auth/google — public, redirect flow (not JSON)
 Redirects the browser to Google's OAuth consent screen. Sets an `oauth_state` cookie (CSRF protection).
@@ -134,6 +148,10 @@ Query:
 
 ### GET /products/:id — public
 **200** → single product (same shape as list rows, includes `category`, `avgRating`, `ratingCount`). **404** missing or soft-deleted.
+
+### GET /products/:id/reviews — public
+Paginated, non-deleted reviews for a product. Query: `?page&pageSize`.
+**200** → paginated reviews (each row: `{ id, userId, productId, rating, comment, isDeleted, createdAt, updatedAt, user {id,name}, product {id,title} }`). **404** product missing or soft-deleted.
 
 ### POST /products — admin
 ```json

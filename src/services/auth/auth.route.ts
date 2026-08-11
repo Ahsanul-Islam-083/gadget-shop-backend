@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from "express";
 import crypto from "crypto";
-import { registerUser, loginUser, getMe, getGoogleAuthUrl, loginWithGoogle } from "./auth.service";
+import { registerUser, loginUser, getMe, updateMe, getGoogleAuthUrl, loginWithGoogle } from "./auth.service";
 import { sendSuccess } from "@/lib/response";
 import { authenticate } from "@/middleware/auth";
 import { AppError } from "@/lib/error-handler";
@@ -140,6 +140,37 @@ router.get("/me", authenticate, async (req: Request, res: Response, next: NextFu
     const user = await getMe(req.user!.id);
 
     sendSuccess(res, user, "User fetched successfully");
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * PATCH /auth/me
+ *
+ * Self-edit profile for currently authenticated user.
+ * Allows updating name, image, and password (requires currentPassword).
+ * Header: Authorization: Bearer <token>
+ * Request Body:
+ * {
+ *   "name": "Jane Doe",                   // optional
+ *   "image": "https://example.com/a.jpg", // optional, string or null
+ *   "password": "newSecret123",           // optional (requires currentPassword)
+ *   "currentPassword": "oldSecret123"     // required only if password is provided
+ * }
+ */
+router.patch("/me", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { name, image, password, currentPassword } = req.body;
+
+    const user = await updateMe(req.user!.id, {
+      name,
+      image,
+      password,
+      currentPassword,
+    });
+
+    sendSuccess(res, user, "Profile updated successfully");
   } catch (error) {
     next(error);
   }

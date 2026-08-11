@@ -8,6 +8,7 @@ const userSelect = {
   name: true,
   email: true,
   role: true,
+  image: true,
   createdAt: true,
   updatedAt: true,
 } as const;
@@ -124,6 +125,7 @@ export async function updateUser(
     name?: string;
     email?: string;
     password?: string;
+    image?: string | null;
     role?: UserRole;
     isDeleted?: boolean;
   }
@@ -153,6 +155,10 @@ export async function updateUser(
 
   if (data.password !== undefined) {
     updateData.password = await hashPassword(data.password);
+  }
+
+  if (data.image !== undefined) {
+    updateData.image = data.image ? data.image.trim() : null;
   }
 
   if (data.role !== undefined) {

@@ -181,6 +181,46 @@ export async function getProductById(id: string) {
   };
 }
 
+export async function listProductReviews(
+  productId: string,
+  page: number,
+  pageSize: number
+) {
+  const product = await prisma.product.findUnique({
+    where: { id: productId },
+  });
+  if (!product || product.isDeleted) {
+    throw new AppError("Product not found", 404);
+  }
+
+  const where = { productId, isDeleted: false };
+  const skip = (page - 1) * pageSize;
+
+  const [data, total] = await Promise.all([
+    prisma.review.findMany({
+      where,
+      include: {
+        user: { select: { id: true, name: true } },
+        product: { select: { id: true, title: true } },
+      },
+      orderBy: { createdAt: "desc" },
+      skip,
+      take: pageSize,
+    }),
+    prisma.review.count({ where }),
+  ]);
+
+  return {
+    data,
+    pagination: {
+      currentPage: page,
+      pageSize,
+      total,
+      totalPages: Math.ceil(total / pageSize),
+    },
+  };
+}
+
 export async function createProduct(data: {
   title: string;
   brand?: string;

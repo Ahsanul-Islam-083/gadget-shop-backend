@@ -10,6 +10,7 @@ const userSelect = {
   name: true,
   email: true,
   role: true,
+  image: true,
   createdAt: true,
   updatedAt: true,
 } as const;
@@ -19,6 +20,7 @@ type SafeUser = {
   name: string;
   email: string;
   role: UserRole;
+  image: string | null;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -81,6 +83,7 @@ export async function loginUser(data: {
     name: user.name,
     email: user.email,
     role: user.role,
+    image: user.image,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
   };
@@ -102,6 +105,82 @@ export async function getMe(userId: string) {
   }
 
   return user;
+}
+
+export interface UpdateMeInput {
+  name?: string;
+  image?: string | null;
+  password?: string;
+  currentPassword?: string;
+}
+
+/**
+ * Self-edit for the currently authenticated user.
+ * Allows updating name, image (avatar), and password (with current password confirmation).
+ * Does NOT allow changing role or email.
+ */
+export async function updateMe(userId: string, data: UpdateMeInput) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+  });
+
+  if (!user || user.isDeleted) {
+    throw new AppError("User not found", 404);
+  }
+
+  const updateData: {
+    name?: string;
+    image?: string | null;
+    password?: string;
+  } = {};
+
+  if (data.name !== undefined) {
+    if (typeof data.name !== "string" || data.name.trim().length === 0) {
+      throw new AppError("Name cannot be empty", 400);
+    }
+    updateData.name = data.name.trim();
+  }
+
+  if (data.image !== undefined) {
+    if (data.image !== null && typeof data.image !== "string") {
+      throw new AppError("Image must be a string or null", 400);
+    }
+    updateData.image = data.image ? data.image.trim() : null;
+  }
+
+  if (data.password !== undefined) {
+    if (typeof data.password !== "string" || data.password.length === 0) {
+      throw new AppError("New password cannot be empty", 400);
+    }
+
+    if (!data.currentPassword) {
+      throw new AppError("Current password is required to change password", 400);
+    }
+
+    if (user.password) {
+      const valid = await comparePassword(data.currentPassword, user.password);
+      if (!valid) {
+        throw new AppError("Current password is incorrect", 400);
+      }
+    }
+
+    updateData.password = await hashPassword(data.password);
+  }
+
+  if (Object.keys(updateData).length === 0) {
+    throw new AppError("No valid fields provided for update", 400);
+  }
+
+  const updated = await prisma.user.update({
+    where: { id: userId },
+    data: updateData,
+    select: {
+      ...userSelect,
+      isDeleted: true,
+    },
+  });
+
+  return updated;
 }
 
 // ================================
@@ -166,6 +245,7 @@ export async function loginWithGoogle(code: string): Promise<{ user: SafeUser; t
 
   const email = payload.email.toLowerCase().trim();
   const name = (payload.name ?? email.split("@")[0] ?? "Google User").trim();
+  const picture = payload.picture ?? null;
 
   let user = await prisma.user.findUnique({ where: { email } });
 
@@ -179,6 +259,7 @@ export async function loginWithGoogle(code: string): Promise<{ user: SafeUser; t
         name,
         email,
         password: null, // Google-authenticated users have no local password
+        image: picture,
         role: UserRole.CUSTOMER, // OAuth can never create an ADMIN
       },
     });
@@ -189,6 +270,7 @@ export async function loginWithGoogle(code: string): Promise<{ user: SafeUser; t
     name: user.name,
     email: user.email,
     role: user.role,
+    image: user.image,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
   };
